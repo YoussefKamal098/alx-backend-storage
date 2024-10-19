@@ -10,7 +10,7 @@ CREATE PROCEDURE ComputeAverageWeightedScoreForUser(user_id INT)
 BEGIN
 
     -- Declare a variable to store the average score, initialized to 0
-    DECLARE avg_score INT DEFAULT 0;
+    DECLARE avg_score FLOAT DEFAULT 0;
 
     -- Calculate the average weighted score for the specified user
     -- The calculation is done by summing the product of scores and weights

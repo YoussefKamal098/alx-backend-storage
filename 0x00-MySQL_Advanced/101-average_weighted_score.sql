@@ -26,7 +26,7 @@ BEGIN
         UPDATE users SET average_score = avg_score WHERE id = user_id;
 
     ELSE
-        -- Optionally, handle the case where the user does not exist
+        -- Handle the case where the user does not exist
         SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'User does not exist';
     END IF;
 
@@ -56,7 +56,7 @@ BEGIN
 
     -- Loop through the users
     users_avg_score_loop: LOOP
-        -- Fetch the next user ID
+        -- Fetch the next user ID into the user_id variable
         FETCH users_cursor INTO user_id;  -- Use the declared variable instead of session variable
 
         -- Check if done
@@ -64,12 +64,38 @@ BEGIN
             LEAVE users_avg_score_loop;  -- Exit the loop if all users are processed
         END IF;
 
-        -- Call the procedure to compute the average score for the user
+        -- Call the procedure to compute the average score for the current user
         CALL ComputeAverageWeightedScoreForUser(user_id);
     END LOOP;
 
     -- Close the cursor
     CLOSE users_cursor;
+END $$
+
+-- Reset the delimiter back to the default
+DELIMITER ;
+
+
+---------------------------------------- ALTERNATIVE APPROACH ------------------------------------------------
+
+-- Drop the procedure if it already exists to avoid errors when creating a new one
+DROP PROCEDURE IF EXISTS ComputeAverageWeightedScoreForUsers;
+
+-- Set a custom delimiter to allow for multi-line statements
+DELIMITER $$
+
+-- Create the procedure ComputeAverageWeightedScoreForUsers
+CREATE PROCEDURE ComputeAverageWeightedScoreForUsers()
+BEGIN
+    -- Update the users table with the average weighted score
+    UPDATE users AS users,
+           (SELECT users.id, SUM(score * weight) / SUM(weight) AS weight_avg
+           FROM users AS users
+           JOIN corrections AS correct ON users.id = correct.user_id
+           JOIN projects AS proj ON correct.project_id = proj.id
+           GROUP BY users.id) AS weight
+    SET users.average_score = weight.weight_avg  -- Set the average score for each user
+    WHERE users.id = weight.id;  -- Match the user ID
 END $$
 
 -- Reset the delimiter back to the default

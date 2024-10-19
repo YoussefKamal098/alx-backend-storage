@@ -34,3 +34,29 @@ END $$
 
 -- Reset the delimiter back to the default
 DELIMITER ;
+
+---------------------------------------- ALTERNATIVE APPROACH ------------------------------------------------
+
+-- Set a custom delimiter to allow for multi-line statements
+DELIMITER $$
+
+-- Drop the procedure if it already exists to avoid errors when creating a new one
+DROP PROCEDURE IF EXISTS ComputeAverageWeightedScoreForUser;
+
+-- Create the procedure ComputeAverageWeightedScoreForUser
+CREATE PROCEDURE ComputeAverageWeightedScoreForUser(user_id INT)
+BEGIN
+    -- Update the average_score in the users table for the specified user
+    UPDATE users
+    SET average_score = (
+        -- Calculate the average weighted score
+        SELECT SUM(corrections.score * projects.weight) / SUM(projects.weight)
+        FROM corrections
+        INNER JOIN projects ON projects.id = corrections.project_id
+        WHERE corrections.user_id = user_id
+    )
+    WHERE users.id = user_id; -- Ensure we only update the specified user
+END $$
+
+-- Reset the delimiter back to the default
+DELIMITER ;

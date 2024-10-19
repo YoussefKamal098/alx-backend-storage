@@ -12,18 +12,23 @@ BEGIN
     -- Declare a variable to store the average score, initialized to 0
     DECLARE avg_score FLOAT DEFAULT 0;
 
-    -- Calculate the average weighted score for the specified user
-    -- The calculation is done by summing the product of scores and weights
-    -- and dividing it by the total weights
-    -- The result is stored in the avg_score variable
-    SELECT SUM(score * weight) / SUM(weight) INTO avg_score
-    FROM projects
-    JOIN corrections ON id = project_id
-    WHERE corrections.user_id = user_id
-    GROUP BY corrections.user_id;
+    -- Check if the user exists before calculating the average score
+    IF EXISTS (SELECT name FROM users WHERE id = user_id) THEN
 
-    -- Update the users table to set the average_score for the specified user
-    UPDATE users SET average_score = avg_score WHERE id = user_id;
+        -- Calculate the average weighted score for the specified user
+        -- The calculation is done by summing the product of scores and weights
+        -- and dividing it by the total weights. If no scores exist, avg_score will be NULL.
+        SELECT IFNULL(SUM(score * weight) / NULLIF(SUM(weight), 0), 0) INTO avg_score
+        FROM projects JOIN corrections ON id = project_id
+        WHERE corrections.user_id = user_id;
+
+        -- Update the users table to set the average_score for the specified user
+        UPDATE users SET average_score = avg_score WHERE id = user_id;
+
+    ELSE
+        -- Optionally, handle the case where the user does not exist
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'User does not exist';
+    END IF;
 
 END $$
 

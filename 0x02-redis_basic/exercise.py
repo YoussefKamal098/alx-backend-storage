@@ -9,7 +9,8 @@ from uuid import uuid4
 
 
 class Cache:
-    def __init__(self):
+    """Caching class"""
+    def __init__(self) -> None:
         """Initialize new cache object"""
         self._redis = Redis()
 

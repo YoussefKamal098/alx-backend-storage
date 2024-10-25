@@ -23,6 +23,8 @@ REDIS_HOST = 'localhost'
 REDIS_PORT = 6379
 REDIS_DB = 0
 
+redis_client = redis.Redis(host=REDIS_HOST, port=REDIS_PORT, db=REDIS_DB)
+
 
 def cache_page(fn: Callable) -> Callable:
     """
@@ -39,11 +41,6 @@ def cache_page(fn: Callable) -> Callable:
         """
         Wrapper function that manages caching logic for the page content.
         """
-        redis_client = redis.Redis(
-            host=REDIS_HOST,
-            port=REDIS_PORT,
-            db=REDIS_DB
-        )
 
         # Cache for page content
         cache_key = f"page_cache:{url}"

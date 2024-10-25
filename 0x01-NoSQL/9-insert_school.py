@@ -3,10 +3,8 @@
 Inserts a new document in a collection.
 """
 
-from pymongo.collection import Collection
 
-
-def insert_school(mongo_collection: Collection, **kwargs) -> str:
+def insert_school(mongo_collection, **kwargs) -> str:
     """
     Inserts a new document in a collection.
     """

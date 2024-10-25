@@ -55,7 +55,6 @@ Example:
 """
 
 import functools
-
 from redis import Redis
 from typing import Union, Optional, Callable
 from uuid import uuid4
@@ -64,8 +63,14 @@ from uuid import uuid4
 def count_calls(method: Callable) -> Callable:
     """
     A decorator that counts the number of times a method is called.
-    """
 
+    Args:
+        method (Callable): The method to be decorated.
+
+    Returns:
+        Callable: A wrapped method that increments a Redis
+            counter each time it is called.
+    """
     @functools.wraps(method)
     def wrapper(self, *args, **kwargs):
         key = method.__qualname__
@@ -78,6 +83,12 @@ def count_calls(method: Callable) -> Callable:
 def call_history(method: Callable) -> Callable:
     """
     A decorator that stores the history of inputs and outputs of a method.
+
+    Args:
+        method (Callable): The method to be decorated.
+
+    Returns:
+        Callable: A wrapped method that stores inputs and outputs in Redis.
     """
     @functools.wraps(method)
     def wrapper(self, *args, **kwargs):
@@ -96,6 +107,12 @@ def call_history(method: Callable) -> Callable:
 def replay(method: Callable) -> None:
     """
     Display the history of calls for a particular function.
+
+    Args:
+        method (Callable): The method for which the call history is displayed.
+
+    Returns:
+        None
     """
     redis_instance = getattr(getattr(method, "__self__"), "_redis")
     inputs_key = f"{method.__qualname__}:inputs"
@@ -111,28 +128,48 @@ def replay(method: Callable) -> None:
 
 
 class Cache:
-    """Caching class"""
-    def __init__(self) -> None:
-        """Initialize new cache object"""
-        self._redis = Redis()
+    """Caching class for storing and retrieving data in Redis."""
 
+    def __init__(self) -> None:
+        """
+        Initialize a new Cache object and connect to Redis.
+
+        This method flushes the Redis database upon initialization.
+        """
+        self._redis = Redis()
         self._redis.flushdb()
 
     @call_history
     @count_calls
     def store(self, data: Union[str, int, bytes, float]) -> str:
-        """Stores data in redis with randomly generated key"""
+        """
+        Stores data in Redis with a randomly generated key.
+
+        Args:
+            data (Union[str, int, bytes, float]): The data to
+                be stored in Redis.
+
+        Returns:
+            str: The generated key for the stored data.
+        """
         key = str(uuid4())
-
         self._redis.set(key, data)
-
         return key
 
     def get(self, key: str, fn: Optional[Callable] = None
             ) -> Optional[Union[str, bytes, int, float]]:
         """
-        Retrieve data from Redis and optionally apply a
-        conversion function `fn`.
+        Retrieve data from Redis and optionally apply a conversion
+        function `fn`.
+
+        Args:
+            key (str): The key of the data to retrieve.
+            fn (Optional[Callable], optional): An optional conversion
+            function to apply to the retrieved data.
+
+        Returns:
+            Optional[Union[str, bytes, int, float]]: The retrieved data,
+                possibly converted, or None if not found.
         """
         value: bytes = self._redis.get(key)
 
@@ -146,11 +183,23 @@ class Cache:
     def get_str(self, key: str) -> Optional[str]:
         """
         Retrieve a string value from Redis.
+
+        Args:
+            key (str): The key of the string data to retrieve.
+
+        Returns:
+            Optional[str]: The decoded string value or None if not found.
         """
         return self.get(key, lambda value: value.decode('utf-8'))
 
     def get_int(self, key: str) -> Optional[int]:
         """
         Retrieve an integer value from Redis.
+
+        Args:
+            key (str): The key of the integer data to retrieve.
+
+        Returns:
+            Optional[int]: The integer value or None if not found.
         """
         return self.get(key, lambda value: int(value))

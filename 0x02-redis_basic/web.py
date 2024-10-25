@@ -48,7 +48,7 @@ def cache_page(fn: Callable) -> Callable:
         # Cache for page content
         cache_key = f"page_cache:{url}"
         # Cache for access count
-        access_count_key = f"page_access_count:{url}"
+        access_count_key = f"count:{url}"
 
         # Attempt to retrieve cached content
         cached_content = redis_client.get(cache_key)

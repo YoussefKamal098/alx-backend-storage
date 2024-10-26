@@ -1,96 +1,81 @@
 #!/usr/bin/env python3
 """
-A simple caching mechanism for web page content using Redis.
+Module for fetching and caching web pages with an access tracker.
 
-This module provides a decorator `cache_page` that caches the
-content of a web page fetched via the `get_page` function.
-If the content is cached, it retrieves it from
-Redis; otherwise, it fetches the content from the web and
-stores it in the cache.
+This module defines a `get_page` function to retrieve HTML content from
+a specified URL.
+It caches the content for a limited duration (10 seconds) to
+optimize repeated requests.
+The function also tracks the number of times each URL is accessed.
 
-Caching is set to expire after 10 seconds.
-The module also keeps track of the number
-of times a page is accessed from the cache.
+Dependencies:
+    - requests: HTTP library for making requests
+    - redis: Redis client for caching and tracking data
+
+Example:
+    page_content = get_page("http://slowwly.robertomurray.co.uk")
 """
 
-import redis
 import requests
-import functools
+import redis
 from typing import Callable
+from functools import wraps
 
-# Constants for Redis configuration
+# Configure Redis
 REDIS_HOST = 'localhost'
 REDIS_PORT = 6379
 REDIS_DB = 0
 
-redis_client = redis.Redis()
+# Redis connection
+redis_client = redis.Redis(host=REDIS_HOST, port=REDIS_PORT, db=REDIS_DB)
 
 
-def cache_page(fn: Callable) -> Callable:
+def cache_with_tracking(expiration: int = 10) -> Callable:
     """
-    A decorator that caches the output of a function that fetches web pages.
+    Decorator to cache the HTML content of a URL and track its access count.
 
     Args:
-        fn (Callable): The function that fetches web page content.
+        expiration (int): Expiration time for the cache in seconds.
+                            Defaults to 10.
 
     Returns:
-        Callable: A wrapper function that adds caching functionality.
+        Callable: The decorated function with caching and
+                    tracking functionality.
     """
-    @functools.wraps(fn)
-    def wrapper(url: str, *args, **kwargs):
-        """
-        Wrapper function that manages caching logic for the page content.
-        """
+    def decorator(func: Callable) -> Callable:
+        @wraps(func)
+        def wrapper(url: str, *args, **kwargs) -> str:
+            # Generate cache and count keys
+            cache_key = f"cache:{url}"
+            count_key = f"count:{url}"
 
-        # Cache for page content
-        cache_key = f"page_cache:{url}"
-        # Cache for access count
-        access_count_key = f"count:{url}"
+            # Check if URL is cached
+            cached_content = redis_client.get(cache_key)
+            if cached_content:
+                redis_client.incr(count_key)
+                return cached_content.decode("utf-8")
 
-        # Attempt to retrieve cached content
-        cached_content = redis_client.get(cache_key)
+            # Fetch content and cache it
+            content = func(url, *args, **kwargs)
+            redis_client.setex(cache_key, expiration, content)
+            redis_client.incr(count_key)
+            return content
 
-        if cached_content:
-            """
-            If content is cached, increment access count
-            and return cached content
-            """
-            redis_client.incr(access_count_key)
-            print(f"Cache found for URL: {url}")
-            return cached_content.decode('utf-8')
-
-        # If not cached, fetch content from the web
-        print(f"No cached content found for URL: {url}. "
-              f"Fetching from the web...")
-        page_content = fn(url, *args, **kwargs)
-
-        """
-        Store the fetched content in cache with an
-        expiration time of 10 seconds
-        """
-        redis_client.setex(cache_key, 10, page_content)
-        redis_client.incr(access_count_key)
-
-        return page_content
-
-    return wrapper
+        return wrapper
+    return decorator
 
 
-@cache_page
+@cache_with_tracking(expiration=10)
 def get_page(url: str) -> str:
     """
-    Fetch the content of a web page.
+    Fetches the HTML content of a URL with caching and access tracking.
 
     Args:
-        url (str): The URL of the web page to fetch.
+        url (str): The URL to retrieve HTML content from.
 
     Returns:
-        str: The content of the web page.
-
-    Raises:
-        HTTPError: If the HTTP request returned an unsuccessful status code.
+        str: The HTML content of the URL.
     """
     response = requests.get(url)
-    # Raise an error for bad responses (4xx or 5xx)
-    response.raise_for_status()
+    response.raise_for_status()  # Raise an error for unsuccessful requests
     return response.text

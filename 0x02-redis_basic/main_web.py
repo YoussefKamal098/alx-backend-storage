@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 from web import get_page
 
-url = "http://google.com"
+url = "http://slowwly.robertomurray.co.uk"
 page_content = get_page(url)
 print(page_content)

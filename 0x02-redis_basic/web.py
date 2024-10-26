@@ -23,7 +23,7 @@ REDIS_HOST = 'localhost'
 REDIS_PORT = 6379
 REDIS_DB = 0
 
-redis_client = redis.Redis(host=REDIS_HOST, port=REDIS_PORT, db=REDIS_DB)
+redis_client = redis.Redis()
 
 
 def cache_page(fn: Callable) -> Callable:

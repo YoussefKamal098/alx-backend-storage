@@ -27,7 +27,7 @@ REDIS_PORT = 6379
 REDIS_DB = 0
 
 # Redis connection
-redis_client = redis.Redis()
+redis_client = redis.Redis(host=REDIS_HOST, port=REDIS_PORT, db=REDIS_DB)
 
 
 def cache_with_tracking(expiration: int = 10) -> Callable:

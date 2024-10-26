@@ -54,10 +54,10 @@ Example:
     replay(cache.store)  # Displays history of calls for the store method
 """
 
+import redis
 import functools
-from redis import Redis
-from typing import Union, Optional, Callable
 from uuid import uuid4
+from typing import Union, Optional, Callable
 
 
 def count_calls(method: Callable) -> Callable:
@@ -136,7 +136,7 @@ class Cache:
 
         This method flushes the Redis database upon initialization.
         """
-        self._redis = Redis()
+        self._redis = redis.Redis()
         self._redis.flushdb()
 
     @call_history

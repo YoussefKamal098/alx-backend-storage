@@ -51,11 +51,13 @@ def cache_with_tracking(expiration: int = 10) -> Callable:
 
             # Check if URL is cached
             cached_content = redis_client.get(cache_key)
+            print(redis_client.get(count_key))
             if cached_content:
                 redis_client.incr(count_key)
                 return cached_content.decode("utf-8")
 
             # Fetch content and cache it
+            print(f"No cache for the url '{url}'. Fetching from the web...")
             content = func(url, *args, **kwargs)
             redis_client.setex(cache_key, expiration, content)
             redis_client.incr(count_key)
